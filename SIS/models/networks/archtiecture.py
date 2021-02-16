@@ -1,3 +1,9 @@
+"""
+original paper: https://github.com/NVlabs/SPADE
+Copyright (C) 2019 NVIDIA Corporation.  All rights reserved.
+Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode).
+"""
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -27,19 +33,19 @@ class SPADEResBlk(nn.Module):
            if self.learn_shortcut:
                self.conv_shortcut = spectral_norm(self.conv_shortcut)
 
-        args = [hidden_ch, kernel_size, stride_size, pad_size, spade_norm, spade_act]  # SPADE arguments
-        self.spade_0 = SPADE(in_ch, mask_ch, *args)
-        self.spade_1 = SPADE(mid_ch, mask_ch, *args)
+        spade_args = [hidden_ch, kernel_size, stride_size, pad_size, spade_norm, spade_act]  # SPADE arguments
+        self.spade_0 = SPADE(in_ch, mask_ch, *spade_args)
+        self.spade_1 = SPADE(mid_ch, mask_ch, *spade_args)
         if self.learn_shortcut:
-            self.spade_shortcut = SPADE(in_ch, mask_ch, *args)
+            self.spade_shortcut = SPADE(in_ch, mask_ch, *spade_args)
         
         self.use_original_resblk = use_original_resblk
 
     def actv(self, x):
         if self.act == 'relu':
-            return F.relu(x, inplace=True)
+            return F.relu(x)
         elif self.act == 'leaky_relu':
-            return F.leaky_relu(x, 0.2, inplace=True)
+            return F.leaky_relu(x, 0.2)
 
 
     def forward(self, x, mask):

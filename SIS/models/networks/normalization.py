@@ -1,3 +1,9 @@
+"""
+original paper: https://github.com/NVlabs/SPADE
+Copyright (C) 2019 NVIDIA Corporation.  All rights reserved.
+Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode).
+"""
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -25,9 +31,9 @@ class SPADE(nn.Module):
         
         # the activation layer of the conv_share
         if act == 'relu':
-            self.conv_act = nn.ReLU(inplace=True)
+            self.conv_act = nn.ReLU()
         elif act == 'leaky_relu':
-            self.conv_act = nn.LeakyReLU(0.2, inplace=True)
+            self.conv_act = nn.LeakyReLU(0.2)
 
 
     def forward(self, x, mask):

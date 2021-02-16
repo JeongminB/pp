@@ -1,10 +1,23 @@
+"""
+original paper: https://github.com/NVlabs/SPADE
+Copyright (C) 2019 NVIDIA Corporation.  All rights reserved.
+Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode).
+"""
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from models.archtiecture import SPADEResBlk
+from models.networks.archtiecture import SPADEResBlk
 
 
 class SPADEGenerator(nn.Module):
+    @staticmethod
+    def modify_commandline_options(parser, is_train):
+        parser.add_argument('--num_upsampling_layers',
+                            choices=('normal', 'more', 'most'), default='normal',
+                            help="If 'more', adds upsampling layer between the two middle resnet blocks. If 'most', also add one more upsampling + resnet layer at the end of the generator")
+        return parser
+
     def __init__(self, params):
         super().__init__()
         self.params = params
@@ -33,7 +46,7 @@ class SPADEGenerator(nn.Module):
             mult = mult // 2
 
         final_num_ch = ngf
-        if self.params.num_upsampling == 7:
+        if self.params.num_upsampling_layers == 'most':
             up_layers.append(SPADEResBlk(1*ngf, ngf // 2, mask_ch, *resnet_args))
             final_num_ch = ngf // 2
 
@@ -43,16 +56,22 @@ class SPADEGenerator(nn.Module):
 
     def get_init_size(self):
         # num upsampling layers: normal=5, more=6, most=7
-        n_up = self.params.num_upsampling
-        assert n_up >= 5 and n_up <= 7, 'num_upsampling should be between 5 and 7'
-        
+        if self.params.num_upsampling_layers == 'normal':
+            n_up = 5
+        elif self.params.num_upsampling_layers == 'more':
+            n_up = 6
+        elif self.params.num_upsampling_layers == 'most':
+            n_up = 7
+        else:
+            raise ValueError('params.num_upsampling_layers [%s] not recognized' %
+                             self.params.num_upsampling_layers)
         init_w = self.params.crop_size // (2**n_up)
         init_h = round(init_w / params.aspect_ratio)
         return init_w, init_h
 
 
     def forward(self, mask, z=None):
-        if z is None:
+        if z is None:  # samples random noise z
             z = torch.randn(mask.size(0), self.params.z_dim, 
                     dtype=torch.float32, device=mask.get_device())
 
@@ -63,7 +82,8 @@ class SPADEGenerator(nn.Module):
         x = self.up(x)
 
         x = self.middle_0(x, mask)
-        if self.params.num_upsampling > 5:
+        if self.params.num_upsampling_layers == 'more' or \
+                self.params.num_upsampling_layers == 'most':
             x = self.up(x)
         x = self.middle_1(x, mask)
 
