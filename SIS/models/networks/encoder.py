@@ -9,7 +9,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from models.networks.base_network import BaseNetwork
-
+import torch.nn.utils.spectral_norm as spectral_norm
 
 class ImageEncoder(BaseNetwork):
     def __init__(self, params):
@@ -18,13 +18,13 @@ class ImageEncoder(BaseNetwork):
 
         kw = 3
         pw = int(np.ceil((kw-1.)/2))
-        nef = params.nef
+        nef = params.num_encoder_filters
 
-        self.layer1 = self.get_norm_layer(nn.Conv2d(3, nef, kw, 2, pw))
-        self.layer2 = self.get_norm_layer(nn.Conv2d(1 * nef, 2 * nef, kw, 2, pw))
-        self.layer3 = self.get_norm_layer(nn.Conv2d(2 * nef, 4 * nef, kw, 2, pw))
-        self.layer4 = self.get_norm_layer(nn.Conv2d(4 * nef, 8 * nef, kw, 2, pw))
-        self.layer5 = self.get_norm_layer(nn.Conv2d(8 * nef, 8 * nef, kw, 2, pw))
+        self.layer1 = self.norm_layer(nn.Conv2d(3, nef, kw, 2, pw))
+        self.layer2 = self.norm_layer(nn.Conv2d(1 * nef, 2 * nef, kw, 2, pw))
+        self.layer3 = self.norm_layer(nn.Conv2d(2 * nef, 4 * nef, kw, 2, pw))
+        self.layer4 = self.norm_layer(nn.Conv2d(4 * nef, 8 * nef, kw, 2, pw))
+        self.layer5 = self.norm_layer(nn.Conv2d(8 * nef, 8 * nef, kw, 2, pw))
         if params.crop_size >=256:
             self.layer6 = self.get_norm_layer(nn.Conv2d(8 * nef, 8 * nef, kw, 2, pw))
 
@@ -33,11 +33,10 @@ class ImageEncoder(BaseNetwork):
         self.fc_var = nn.Linear(nef * 8 * s0 * s0, 256)
         self.params = params
 
-    def get_norm_layer(self, layer):
-        if hasattr(layer, 'out_channels'):
-            num_ch = getattr(layer, 'out_channels')
-        else:
-            num_ch = layer.weight.size(0)
+    def norm_layer(self, layer):
+        if self.params.use_spec_norm_e:
+            layer = spectral_norm(layer)
+        num_ch = getattr(layer, 'out_channels')
         norm_layer = nn.InstanceNorm2d(num_ch, affine=False)
         return nn.Sequential(layer, norm_layer)
 

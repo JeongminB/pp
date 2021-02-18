@@ -24,7 +24,7 @@ class SPADEGenerator(nn.Module):
         self.init_w, self.init_h = self.get_init_size()
     
         mult = 16
-        ngf = params.ngf
+        ngf = params.num_generator_filters
         mask_ch = params.mask_ch
         stride_size = params.spade_stride_size
         kernel_size = params.spade_kernel_size
