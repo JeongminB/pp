@@ -8,7 +8,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.utils import spectral_norm
-from models.normalization import SPADE
+from models.networks.normalization import SPADE
 
 
 class SPADEResBlk(nn.Module):
